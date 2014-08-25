@@ -74,6 +74,7 @@ def upload(request):
 			"error": str(e)
 		}
 	except Exception as e:
+		print(repr(e))
 		print("Unknown error storing files: {}".format(e))
 
 		response = {

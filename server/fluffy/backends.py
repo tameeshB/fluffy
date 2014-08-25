@@ -1,5 +1,7 @@
 import os
 import pipes
+import requests
+import json
 from fluffy.utils import get_human_size
 from django.conf import settings
 
@@ -95,6 +97,53 @@ class S3CommandLineBackend:
 
 			os.remove(path)
 
+class KloudlessBackend:
+	"""Storage backend which uploads files via the Kloudless API. This is an
+	easy way to upload to S3, Dropbox, and several other services."""
+
+	API_ENDPOINT = "https://api.kloudless.com/v0"
+	API_RESOURCE_FILE = "/accounts/{account}/files"
+
+	def __init__(self, options):
+		self.options = options
+
+	def store(self, stored_file):
+		# TODO: use multipart upload API for large files
+		url = self.API_ENDPOINT + self.API_RESOURCE_FILE
+
+		def upload(name, parent_id, file):
+			metadata = {"name": name, "parent_id": parent_id}
+			headers = {"Authorization": "AccountKey " + self.options["account_key"]}
+
+			req = requests.post(url.format(account=self.options["account_id"]),
+				{"metadata": json.dumps(metadata)},
+				headers=headers,
+				files={"file": file})
+
+			if req.status_code != 201:
+				print("Got unexpected status code from Kloudless: {}"
+					.format(req.status_code))
+				print("Response: {}".format(req.text))
+
+				internal = "Received {} status code".format(req.status_code)
+				display = "Sorry, we weren't able to save your file."
+				raise BackendException(internal, display)
+
+		files = (
+			{"name": "file", "file": stored_file.file},
+			{"name": "info", "file": ("info.html", stored_file.info_html)}
+		)
+
+		for file in files:
+			name = self.options[file["name"] + "_name"].format(name=stored_file.name)
+			parent_id = self.options[file["name"] + "_parent_id"]
+
+			upload(name, parent_id, file["file"])
+
+		print("Done!")
+
+
+
 class DebugBackend:
 	"""Storage backend which doesn't store files but prints debug info."""
 
@@ -125,6 +174,7 @@ class BackendException(Exception):
 backends = {
 	"file": FileBackend,
 	"s3cli": S3CommandLineBackend,
+	"kloudless": KloudlessBackend,
 	"debug": DebugBackend
 }
 
