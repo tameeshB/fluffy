@@ -1,3 +1,4 @@
+import difflib
 import contextlib
 import json
 import time
@@ -164,10 +165,10 @@ def paste():
                 HtmlToStore.from_html(
                     render_template(
                         'paste.html',
-                        text=text,
-                        text2=text2,
+                        text=difflib.HtmlDiff().make_file(text.split('\n'), text2.split('\n')),
+                        # text2=text2,
                         highlighter=highlighter,
-                        highlighter2=highlighter2,
+                        # highlighter2=highlighter2,
                         raw_url=app.config['FILE_URL'].format(name=uf.name),
                         styles=STYLES_BY_CATEGORY,
                     ),
