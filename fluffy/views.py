@@ -1,6 +1,5 @@
 import contextlib
 import json
-import textwrap
 import time
 
 from flask import jsonify
@@ -155,15 +154,10 @@ def paste():
             ), 413
         objects.append(uf)
 
-        if request.form.get('word_wrap'):
-            wrapper = textwrap.TextWrapper(width=50)
-            text = wrapper.fill(text=text)
-
         if request.form.get('format_text'):
             if iff_json_then_pretty_json(text):
                 text = iff_json_then_pretty_json(text)
                 lang = 'json'
-
         # HTML view (Markdown or paste)
         lang = lang or request.form['language']
         if lang != 'rendered-markdown':
